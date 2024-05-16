@@ -3,8 +3,7 @@ use std::{fmt::Debug, marker::PhantomData};
 use crate::types::{U256, U512};
 
 use super::{ECpoint, EC};
-/// Represents a skalar in the Zp field the ECC math is made in,
-/// it is mod p (order of curve)
+
 pub trait GroupOrder: PartialEq + Default + Copy + Debug{
     const P: U256;    
 } 
@@ -136,99 +135,38 @@ impl<G: GroupOrder> std::ops::Div for Zp<G> {
     }
 }
 
-impl<G: GroupOrder> std::convert::From<i8> for Zp<G>{
-    fn from(value: i8) -> Self {
-        match value >= 0 {
-            true => Zp(U256::from(value as u8), PhantomData),
-            false => -Zp(U256::from(-value), PhantomData)
-        }
+
+macro_rules! impl_from_for_zp_signed {
+    ($($ti:ty,$tu:ty),*) => {
+        $(
+            impl<G: GroupOrder> std::convert::From<$ti> for Zp<G>{
+                fn from(value: $ti) -> Self {
+                    match value >= 0 {
+                        //$tu is the unsigned counterpart as U256 from is implemented on for them
+                        true => Zp(U256::from(value as $tu), PhantomData),
+                        false => -Zp(U256::from(-value), PhantomData)
+                    }
+                    
+                }
+            }
+        )*
+    };
+}
+
+impl_from_for_zp_signed!(i8,u8,i16,u16,i32,u32,i64,u64,i128,u128);
+
+
+macro_rules! impl_from_for_zp_unsigned {
+    ($($t:ty),*) => {
+        $(
+            impl<G: GroupOrder> std::convert::From<$t> for Zp<G>{
+                fn from(value: $t) -> Self {
+                    Zp(U256::from(value), PhantomData)
+                }
+            }            
+        )*
         
-    }
+    };
 }
 
-
-impl<G: GroupOrder> std::convert::From<i16> for Zp<G>{
-    fn from(value: i16) -> Self {
-        match value >= 0 {
-            true => Zp(U256::from(value as u16), PhantomData),
-            false => -Zp(U256::from(-value), PhantomData)
-        }
-        
-    }
-}
-
-
-impl<G: GroupOrder> std::convert::From<i32> for Zp<G>{
-    fn from(value: i32) -> Self {
-        match value >= 0 {
-            true => Zp(U256::from(value as u32), PhantomData),
-            false => -Zp(U256::from(-value), PhantomData)
-        }
-        
-    }
-}
-
-
-impl<G: GroupOrder> std::convert::From<i64> for Zp<G>{
-    fn from(value: i64) -> Self {
-        match value >= 0 {
-            true => Zp(U256::from(value as u64), PhantomData),
-            false => -Zp(U256::from(-value), PhantomData)
-        }
-        
-    }
-}
-
-impl<G: GroupOrder> std::convert::From<i128> for Zp<G>{
-    fn from(value: i128) -> Self {
-        match value >= 0 {
-            true => Zp(U256::from(value as u128), PhantomData),
-            false => -Zp(U256::from(-value), PhantomData)
-        }
-        
-    }
-}
-
-impl<G: GroupOrder> std::convert::From<u8> for Zp<G>{
-    fn from(value: u8) -> Self {
-        Zp(U256::from(value), PhantomData)
-    }
-}
-
-impl<G: GroupOrder> std::convert::From<u16> for Zp<G>{
-    fn from(value: u16) -> Self {
-        Zp(U256::from(value), PhantomData)
-    }
-}
-
-impl<G: GroupOrder> std::convert::From<u32> for Zp<G>{
-    fn from(value: u32) -> Self {
-        Zp(U256::from(value), PhantomData)
-    }
-}
-
-impl<G: GroupOrder> std::convert::From<u64> for Zp<G>{
-    fn from(value: u64) -> Self {
-        Zp(U256::from(value), PhantomData)
-    }
-}
-
-impl<G: GroupOrder> std::convert::From<u128> for Zp<G>{
-    fn from(value: u128) -> Self {
-        Zp(U256::from(value), PhantomData)
-    }
-}
-
-impl<G: GroupOrder> std::convert::From<U256> for Zp<G>{
-    fn from(value: U256) -> Self {
-        Zp(value, PhantomData)
-    }
-}
-
-
-
-
-
-
-
-
+impl_from_for_zp_unsigned!(u8,u16,u32,u64,u128,U256);

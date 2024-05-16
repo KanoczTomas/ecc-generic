@@ -16,6 +16,22 @@ mod tests {
     impl EC for ElipticCurve {
         const A: i64 = 0;
         const B: i64 = 7;
+        
+        fn generator<G: GroupOrder, E: EC>(&self) -> crate::types::ECpoint<G, E> {
+            todo!()
+        }
+        
+        fn n_curve_points<G: GroupOrder, E: EC>(&self) -> U256 {
+            todo!()
+        }
+        
+        fn cofactor<G: GroupOrder, E: EC>(&self) -> U256 {
+            todo!()
+        }
+        
+        fn order_of_cyclic_subgroup<G: GroupOrder, E: EC>(&self) -> U256 {
+            todo!()
+        }
     }
     type ECpoint = crate::types::ECpoint<P, ElipticCurve>;
     #[test]
@@ -194,8 +210,8 @@ mod tests {
     fn test_some_algebra() {
         // 2P + 3P + 5P/5P - 2P  = 4P
         let p = ECpoint::new(38, 53).unwrap();
-        let left = Zp::new(2)*p + Zp::new(3)*p + (Zp::new(5)/Zp::new(5))*p - Zp::new(2)*p;
-        let right = Zp::new(4)*p;
+        let left = p*2 + p*3 + p*5/5 - p*2;
+        let right = p*4;
         assert_eq!(left, right);
     }
 

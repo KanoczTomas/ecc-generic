@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::types::{Zp, GroupOrder, EC};
+use crate::types::{Zp, GroupOrder, EC, U256};
 
 
 #[derive(Default,Debug, PartialEq, Clone, Copy)]
@@ -126,8 +126,59 @@ impl<G: GroupOrder, E: EC> std::ops::Mul<Zp<G>> for ECpoint<G, E> {
     }
 }
 
+macro_rules! impl_mut_for_ecpoint {
+    ($($t:ty),*) => {
+        $(
+            impl<G: GroupOrder, E: EC> std::ops::Mul<$t> for ECpoint<G, E> {
+                type Output = ECpoint<G, E>;
+            
+                fn mul(self, rhs: $t) -> Self::Output {
+                    let rhs: Zp<G> = rhs.into();
+                    self * rhs
+                }
+            }  
+        )*
+    };
+}
+
+// for convenience with math, we do not own the built in types, so we can not write 2*P
+// but using the below impls we can use a P*2
+impl_mut_for_ecpoint!(i8, u8, i16, u16, i32, u32, i64, u64, i128, u128);
+
+
 impl<G: GroupOrder, E: EC> std::ops::MulAssign<Zp<G>> for ECpoint<G, E> {
     fn mul_assign(&mut self, rhs: Zp<G>) {
         *self = *self * rhs
+    }
+}
+
+impl<G: GroupOrder, E: EC> std::ops::Div<Zp<G>> for ECpoint<G, E>{
+    type Output = ECpoint<G, E>;
+
+    fn div(self, rhs: Zp<G>) -> Self::Output {
+        (Zp::new(1)/rhs) * self
+    }
+}
+
+macro_rules! impl_div_for_ecpoint {
+    ($($t:ty),*) => {
+        $(
+            impl<G: GroupOrder, E: EC> std::ops::Div<$t> for ECpoint<G, E> {
+                type Output = ECpoint<G, E>;
+            
+                fn div(self, rhs: $t) -> Self::Output {
+                    let rhs: Zp<G> = rhs.into();
+                    self / rhs
+                }
+            }
+        )*
+    };
+}
+
+impl_div_for_ecpoint!(i8,u8,i16,u16,i32,u32,i64,u64,i128,u128,U256);
+
+impl<G: GroupOrder, E: EC> std::ops::DivAssign<Zp<G>> for ECpoint<G, E> {
+    fn div_assign(&mut self, rhs: Zp<G>) {
+        *self = *self / rhs
     }
 }
