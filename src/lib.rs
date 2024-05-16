@@ -1,5 +1,6 @@
 
 pub mod types;
+pub mod utils;
 
 #[cfg(test)]
 mod tests {
@@ -14,18 +15,10 @@ mod tests {
     #[derive(Debug, Default, Clone, Copy, PartialEq)]
     struct ElipticCurve;
     impl EC for ElipticCurve {
-        const A: i64 = 0;
-        const B: i64 = 7;
+        const A: U256 = U256([0;4]);
+        const B: U256 = U256([7,0,0,0]);
         
         fn generator<G: GroupOrder, E: EC>(&self) -> crate::types::ECpoint<G, E> {
-            todo!()
-        }
-        
-        fn n_curve_points<G: GroupOrder, E: EC>(&self) -> U256 {
-            todo!()
-        }
-        
-        fn cofactor<G: GroupOrder, E: EC>(&self) -> U256 {
             todo!()
         }
         
@@ -113,7 +106,7 @@ mod tests {
         assert_eq!(None, ec_point);
         let (x, y) = (0, 0);
         let ec_point = ECpoint::new(x, y);
-        assert_eq!(true, ec_point.is_some());
+        assert_eq!(false, ec_point.is_some());
     }
     #[test]
     fn test_ecpoint_on_curve() {
@@ -213,6 +206,30 @@ mod tests {
         let left = p*2 + p*3 + p*5/5 - p*2;
         let right = p*4;
         assert_eq!(left, right);
+    }
+    #[test]
+    fn test_curve_n_points() {
+        #[derive(Debug, Clone, Copy, Default, PartialEq)]
+        struct P53;
+        impl GroupOrder for P53 {
+            const P: U256 = U256([53, 0, 0, 0]);
+        }
+        let n = ElipticCurve.n_curve_points::<P, ElipticCurve>();
+        assert_eq!(n, 127.into());
+        let n = ElipticCurve.n_curve_points::<P53, ElipticCurve>();
+        assert_eq!(n, 54.into());
+    }
+    #[test]
+    fn test_curve_cofactor() {
+        #[derive(Debug, Clone, Copy, Default, PartialEq)]
+        struct P;
+        impl GroupOrder for P {
+            const P: U256 = U256([53, 0, 0, 0]);
+        }
+        let h = ElipticCurve.cofactor::<P, ElipticCurve>();
+        let n = ElipticCurve.n_curve_points::<P, ElipticCurve>();
+        dbg!(n);
+        assert_eq!(h, 0.into());
     }
 
 

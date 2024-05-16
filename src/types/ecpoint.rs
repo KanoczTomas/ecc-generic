@@ -23,8 +23,7 @@ impl<G: GroupOrder, E: EC> ECpoint<G, E> {
     pub fn new<U: Into<Zp<G>>, T: Into<Zp<G>>>(x: U, y: T) -> Option<Self> {
         let (x, y) = (x.into(), y.into());
         let (a, b): (Zp<G>, Zp<G>) = (Zp::new(E::A), Zp::new(E::B));
-        if (x.is_zero() && y.is_zero()) ||
-           (y * y == x * x * x + a * x* x + b){
+        if y * y == x * x * x + a * x* x + b {
             Some(ECpoint::Point(Point{x, y, _curve: PhantomData}))
         } else {
             None

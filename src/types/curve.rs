@@ -1,12 +1,30 @@
 use std::marker::PhantomData;
-use crate::types::{ECpoint, U256, GroupOrder};
+use crate::{types::{ECpoint, GroupOrder, U256}, utils::find_factors};
 
 pub trait EC: PartialEq + Default + Copy{
-    const A: i64;
-    const B: i64;
+    const A: U256;
+    const B: U256;
     fn generator<G: GroupOrder, E: EC>(&self) -> ECpoint<G, E>;
-    fn n_curve_points<G: GroupOrder, E: EC>(&self) -> U256;
-    fn cofactor<G: GroupOrder, E: EC>(&self) -> U256;
+    fn n_curve_points<G: GroupOrder, E: EC>(&self) -> U256 {
+        let (mut count, mut x, mut y) = (U256::zero(), U256::zero(), U256::zero());
+        while x != G::P  {
+            while y != G::P  {
+                if let Some(_) = ECpoint::<G,E>::new(x, y) {
+                    count += U256::one();
+                }
+                y += U256::one();
+            }
+            x += U256::one();
+            y = U256::zero();
+        }
+        count += U256::one(); //we add the point at infinity
+        count
+    }
+    fn cofactor<G: GroupOrder, E: EC>(&self) -> U256 {
+        let a = find_factors(Self::n_curve_points::<G, E>(&self));
+        dbg!(&a);
+        a[0]
+    }
     fn order_of_cyclic_subgroup<G: GroupOrder, E: EC>(&self) -> U256; 
 }
 
