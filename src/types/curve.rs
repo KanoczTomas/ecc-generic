@@ -1,9 +1,13 @@
 use std::marker::PhantomData;
 use crate::types::{ECpoint, U256, GroupOrder};
 
-pub trait EC: PartialEq + Default + Copy {
+pub trait EC: PartialEq + Default + Copy{
     const A: i64;
     const B: i64;
+    fn generator<G: GroupOrder, E: EC>(&self) -> ECpoint<G, E>;
+    fn n_curve_points<G: GroupOrder, E: EC>(&self) -> U256;
+    fn cofactor<G: GroupOrder, E: EC>(&self) -> U256;
+    fn order_of_cyclic_subgroup<G: GroupOrder, E: EC>(&self) -> U256; 
 }
 
 #[allow(non_snake_case)]
