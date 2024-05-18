@@ -4,6 +4,10 @@ pub mod utils;
 
 #[cfg(test)]
 mod tests {
+    use std::ptr::eq;
+
+    use rand::{Rng, RngCore};
+
     use crate::types::*;
     // use super::*;
     #[derive(Debug, PartialEq, Clone, Copy, Default)]
@@ -18,14 +22,12 @@ mod tests {
         const A: U256 = U256([0;4]);
         const B: U256 = U256([7,0,0,0]);
         
-        fn generator<G: GroupOrder, E: EC>(&self) -> crate::types::ECpoint<G, E> {
-            todo!()
-        }
         
         fn order_of_cyclic_subgroup<G: GroupOrder, E: EC>(&self) -> U256 {
             todo!()
         }
     }
+    
     type ECpoint = crate::types::ECpoint<P, ElipticCurve>;
     #[test]
     fn test_zp_new(){
@@ -34,9 +36,18 @@ mod tests {
     }
     #[test]
     fn test_zp_addition(){
+        #[derive(Debug, Default, Clone, Copy, PartialEq)]
+        struct HugeP;
+        impl GroupOrder for HugeP {
+            // const P: U256 = U256([u64::MAX, u64::MAX, u64::MAX, u64::MAX]);
+            const P: U256 = U256::MAX;
+        }
         let a = Zp::new(126);
         let b = Zp::new(1);
         assert_eq!(a + b, Zp::new(0));
+        let a = crate::types::Zp::<HugeP>::new(U256::MAX - 1);
+        let b = crate::types::Zp::<HugeP>::new(U256::MAX - 1);
+        assert_eq!((a + b).unwrap(), U256::MAX - 2);
     }
     #[test]
     fn test_zp_add_assign(){
@@ -64,9 +75,19 @@ mod tests {
     }
     #[test]
     fn test_substract_2_different_values(){
+        #[derive(Debug, Default, Clone, Copy, PartialEq)]
+        struct HugeP;
+        impl GroupOrder for HugeP {
+            const P: U256 = U256::MAX;
+        }
         let a = Zp::new(5);
         let b = Zp::new(10);
-        assert_eq!(a - b, Zp::new(122))
+        assert_eq!(a - b, Zp::new(122));
+        let a = crate::types::Zp::<HugeP>::new(3);
+        let b = crate::types::Zp::<HugeP>::new(U256::MAX);
+        assert_eq!(a - b, 3.into());
+
+        
     }
     #[test]
     fn test_sub_assign(){
@@ -76,10 +97,20 @@ mod tests {
     }
     #[test]
     fn test_mul(){
+        #[derive(Debug, Default, Clone, Copy, PartialEq)]
+        struct HugeP;
+        impl GroupOrder for HugeP {
+            const P: U256 = U256::MAX;
+        }
+        type ZpH = crate::types::Zp<HugeP>;
         let a = Zp::new(127);
         let b = Zp::new(3);
         assert_eq!(a * b, Zp::new(0));
         assert_eq!(b * Zp::new(12), Zp::new(36));
+        let a = ZpH::new(U256::MAX-1); 
+        let b = ZpH::new(U256::MAX-3);
+        // -1 * -3 == 3
+        assert_eq!(a * b, 3.into());
     }
     #[test]
     fn test_mul_assign() {
@@ -231,6 +262,4 @@ mod tests {
         dbg!(n);
         assert_eq!(h, 0.into());
     }
-
-
 }

@@ -60,7 +60,12 @@ impl<G: GroupOrder> Zp<G> {
 impl<G: GroupOrder> std::ops::Add for Zp<G> {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
-        Zp::new(self.0 + rhs.0)
+        let (res, overflow) = self.0.overflowing_add(rhs.0);
+        Zp::new(if overflow || res >= G::P {
+            res.overflowing_sub(G::P).0
+        } else {
+            res
+        })
     }
 }
 
@@ -99,7 +104,9 @@ impl<G: GroupOrder> std::ops::Mul for Zp<G>{
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        Zp::new(self.0 % G::P * rhs.0 % G::P)
+        let res = U512::from(self.unwrap()) * U512::from(rhs.unwrap());
+        let res: U256 = (res % U512::from(G::P)).try_into().unwrap();//safe as we do modulo
+        Zp::new(res)
     }
 }
 
