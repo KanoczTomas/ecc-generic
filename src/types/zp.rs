@@ -6,7 +6,8 @@ use super::{ECpoint, EC};
 
 pub trait GroupOrder: PartialEq + Default + Copy + Debug{
     const P: U256;    
-} 
+}
+
 
 
 #[derive(Clone, Copy, PartialEq, Debug, Default)]
@@ -52,6 +53,97 @@ impl<G: GroupOrder> Zp<G> {
 		}
 
 		Zp::new(xy.0)
+    }
+    ///Raises self to the power of exp using square and multiply algorithm.
+    pub fn pow<T: Into<U256>>(self, exp: T) -> Zp<G> {
+        let mut base = U512::from(self.unwrap());
+        let mut exp = exp.into();
+        let mut res = U512::one();
+        let p = U512::from(G::P);
+        while exp != 0.into() {
+            if exp & 1.into() == 1.into() {
+                res = (res * base) % p; //multiply
+            }
+            base = (base * base) % p; //square
+            exp >>= 1; //devide by half
+        }
+        let res: U256 = res.try_into().unwrap();
+        Zp::new(res)
+    }
+    ///Decides whether a number is a quadratic residue. If it has a square root
+    ///it is a quadratic residue mod p.We use Euler's criterion to do so.
+    pub fn is_quadratic_residue(self) -> bool {
+        //mod 2, trivial results
+        if G::P == 2.into() {
+            return true
+        }
+        //if se;f % p == 0
+        //As Zp is already mod p, we just have to check if it is 0
+        match self.is_zero() {
+            true => true,
+            false => self.pow((G::P- 1) / 2) == 1.into()
+        }
+
+    }
+    ///Find number n such that n * n = self. In other words finds the square root 
+    ///modulo prime of self
+    pub fn sqrt(self) -> Option<Self> {
+        //rewrite of
+        //https://github.com/jacksoninfosec/tonelli-shanks/blob/main/tonelli-shanks.py
+        //if n % p == 0, 0 is a trivial solution
+        if self.is_zero() {
+            return Some(self)
+        }
+        if self.is_quadratic_residue() == false {
+            return None
+        }
+        //If p=3(mod 4) and we know n is a quadratic residue then 
+        //we can solve x^2=n(mod p) directly
+        if G::P % U256::from(4) == 3.into() {
+            return Some(self.pow((G::P+1)/4))
+        }
+        //So now p=1(mod 4), (although this is not needed in the algorithm).
+        //Write p - 1 = (2^S)(Q) where Q is odd
+        #[allow(non_snake_case)]
+        let mut Q = G::P - 1;
+        #[allow(non_snake_case)]
+        let mut S = U256::zero();
+        while Q % U256::from(2) == 0.into() {
+            S += U256::from(1);
+            Q /= U256::from(2);
+        }
+        //Find a quadratic non-residue of p by brute force search
+        let mut z = Zp::new(2);
+        while z.is_quadratic_residue() {
+            z += 1.into()
+        }
+
+        //Initialize variables
+        #[allow(non_snake_case)]
+	    let mut M = S;
+	    let mut c = z.pow(Q);
+	    let mut t = self.pow(Q);
+        #[allow(non_snake_case)]
+	    let mut R = self.pow((Q+1)/2);
+        while t != 1.into() {
+            //Calculate i
+            let mut i = U256::zero();
+            let mut temp = t; 
+            while temp != 1.into(){
+                i += U256::one();
+                temp *= temp;
+            }
+            
+            //Calculate b, M, c, t, R
+            let pow2 = Zp::<G>::new(2).pow(M - i - 1);
+            let b = c.pow(pow2.unwrap());
+            M = i;
+            c = b * b;
+            t = t * b * b;
+            R = R * b;
+            
+        }
+        return Some(R)
     }
     
 
@@ -110,23 +202,23 @@ impl<G: GroupOrder> std::ops::Mul for Zp<G>{
     }
 }
 
-impl<G: GroupOrder, E: EC> std::ops::Mul<ECpoint<G, E>> for Zp<G>{
-    type Output = ECpoint<G, E>;
+// impl<G: GroupOrder, E: EC> std::ops::Mul<ECpoint<G, E>> for Zp<G>{
+//     type Output = ECpoint<G, E>;
 
-    fn mul(self, rhs: ECpoint<G, E>) -> Self::Output {
-        let mut res = ECpoint::Infinity;
-        let lhs = self.unwrap();
-        let mut point = rhs;
+//     fn mul(self, rhs: ECpoint<G, E>) -> Self::Output {
+//         let mut res = ECpoint::Infinity;
+//         let lhs = self.unwrap();
+//         let mut point = rhs;
 
-        for b in 0..256 {
-            if lhs.bit(b as usize) {
-                res += point;
-            }
-            point += point; //doubleing
-        }
-        res
-    }
-}
+//         for b in 0..256 {
+//             if lhs.bit(b as usize) {
+//                 res += point;
+//             }
+//             point += point; //doubleing
+//         }
+//         res
+//     }
+// }
 
 impl<G: GroupOrder> std::ops::MulAssign for Zp<G> {
     fn mul_assign(&mut self, rhs: Self) {
@@ -141,7 +233,6 @@ impl<G: GroupOrder> std::ops::Div for Zp<G> {
         self * Zp::multiplicative_inverse(rhs)
     }
 }
-
 
 macro_rules! impl_from_for_zp_signed {
     ($($ti:ty,$tu:ty),*) => {

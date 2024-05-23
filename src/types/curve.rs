@@ -1,10 +1,25 @@
-use std::marker::PhantomData;
+use std::{fmt::Debug, marker::PhantomData};
 use crate::{types::{ECpoint, GroupOrder, U256}, utils::find_factors};
 
+
 pub trait EC: PartialEq + Default + Copy{
+    ///a constant in the elliptic curve equation
     const A: U256;
+    ///b constant in the elliptic curve equation
     const B: U256;
-    fn generator<G: GroupOrder, E: EC>(&self) -> ECpoint<G, E>;
+    ///Finds random point P where nP = 0 and n != 1
+    // fn find_generator<G: GroupOrder, E: EC>(&mut self) -> ECpoint<G, E> {
+    //     //pick random x coordinate
+    //     let mut x = [0;4];
+    //     self.fill(&mut x);
+    //     let x = Zp::<G>::new(U256(x));
+    //     ECpoint::Infinity
+    // }
+
+    ///Returns the number of curve points (naive default)
+    ///implementation, goes through whole space and checks for 
+    ///equation. For high P-s implement your own algo, e.g. 
+    ///Schoof's algorithm
     fn n_curve_points<G: GroupOrder, E: EC>(&self) -> U256 {
         let (mut count, mut x, mut y) = (U256::zero(), U256::zero(), U256::zero());
         while x != G::P  {
@@ -39,7 +54,7 @@ pub struct Curve<S, G: GroupOrder, E: EC> {
     pub N: U256,
     pub p: U256,
     pub h: u64,
-    pub n: U256,
+    // pub n: U256,
     _state: PhantomData<S>
 }
 
@@ -77,10 +92,10 @@ impl<G: GroupOrder, E: EC> Curve<UnfinalizedCurve, G, E> {
         self.h = h.into();
         self
     }
-    pub fn n<T: Into<U256>>(mut self, n: T) -> Self{
-        self.n = n.into();
-        self
-    }
+    // pub fn n<T: Into<U256>>(mut self, n: T) -> Self{
+    //     self.n = n.into();
+    //     self
+    // }
     pub fn finalize(self) -> Curve<FinalizedCurve, G, E>{
         Curve { name: self.name, 
             a: self.a, 
@@ -90,7 +105,8 @@ impl<G: GroupOrder, E: EC> Curve<UnfinalizedCurve, G, E> {
             N: self.N, 
             p: G::P,
             h: self.h, 
-            n: self.n, 
-            _state: PhantomData}
+            // n: N::N, 
+            _state: PhantomData,
+        }
     }
 }
