@@ -18,19 +18,18 @@ mod tests {
         const P: U256 = U256::MAX;
     }
     type ZpH = crate::types::Zp<HugeP>;
-    #[derive(Debug, PartialEq, Clone, Copy, Default)]
-    struct N;
-    impl CurveOrder for N {
-        const N: U256 = U256([127, 0, 0, 0]);
-    }
-    type Scalar = crate::types::Scalar<N>;
-
+    // #[derive(Debug, PartialEq, Clone, Copy, Default)]
+    // struct N;
+    // impl CurveOrder for N {
+    //     const N: U256 = U256([127, 0, 0, 0]);
+    // }
+    
     #[derive(Debug, Default, Clone, Copy, PartialEq)]
     struct ElipticCurve;
     impl EC for ElipticCurve {
         const A: U256 = U256([0;4]);
         const B: U256 = U256([7,0,0,0]);
-        
+        const N: U256 = U256([127, 0, 0, 0]);
         fn order_of_cyclic_subgroup<G: GroupOrder, E: EC>(&self) -> U256 {
             todo!()
         }
@@ -38,6 +37,7 @@ mod tests {
     }
     
     type ECpoint = crate::types::ECpoint<P, ElipticCurve>;
+    type Scalar = crate::types::Scalar<ElipticCurve>;
     #[test]
     fn test_zp_new(){
         let a = Zp::new(130);
@@ -233,25 +233,31 @@ mod tests {
         impl EC for CurveP256k1 {
             const A: U256 = U256([0;4]);
             const B: U256 = U256([7, 0, 0, 0]);
-            //115792089237316195423570985008687907852837564279074904382605163141518161494337
-            fn order_of_cyclic_subgroup<G: GroupOrder, E: EC>(&self) -> U256 {
-                todo!()
-            }
-            
-        }
-        #[derive(Debug, Default, Clone, Copy, PartialEq)]
-        struct CurveOrderSecp256k1;
-        impl CurveOrder for CurveOrderSecp256k1 {
             const N: U256 = U256([
                 13822214165235122497,
                 13451932020343611451,
                 18446744073709551614,
                 18446744073709551615,
             ]);
+            //115792089237316195423570985008687907852837564279074904382605163141518161494337
+            fn order_of_cyclic_subgroup<G: GroupOrder, E: EC>(&self) -> U256 {
+                todo!()
+            }
+            
         }
+        // #[derive(Debug, Default, Clone, Copy, PartialEq)]
+        // struct CurveOrderSecp256k1;
+        // impl CurveOrder for CurveOrderSecp256k1 {
+        //     const N: U256 = U256([
+        //         13822214165235122497,
+        //         13451932020343611451,
+        //         18446744073709551614,
+        //         18446744073709551615,
+        //     ]);
+        // }
         type ZpH = crate::types::Zp<Secp256k1P>;
         type ECpointH = crate::types::ECpoint<Secp256k1P, CurveP256k1>;
-        type ScalarH = crate::types::Scalar<CurveOrderSecp256k1>;
+        type ScalarH = crate::types::Scalar<CurveP256k1>;
         let a = ECpoint::new(38, 53).unwrap();
         assert_eq!(a , a * Scalar::new(1));
         assert_eq!(a + a, a * Scalar::new(2));

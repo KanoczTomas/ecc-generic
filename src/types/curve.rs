@@ -7,6 +7,7 @@ pub trait EC: PartialEq + Default + Copy{
     const A: U256;
     ///b constant in the elliptic curve equation
     const B: U256;
+    const N: U256;
     ///Finds random point P where nP = 0 and n != 1
     // fn find_generator<G: GroupOrder, E: EC>(&mut self) -> ECpoint<G, E> {
     //     //pick random x coordinate

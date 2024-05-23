@@ -106,10 +106,10 @@ impl<G: GroupOrder, E: EC> std::ops::Sub for ECpoint<G, E> {
 }
 
 ///scalar multiplication
-impl<G: GroupOrder, E: EC, N: CurveOrder > std::ops::Mul<Scalar<N>> for ECpoint<G, E> {
+impl<G: GroupOrder, E: EC> std::ops::Mul<Scalar<E>> for ECpoint<G, E> {
     type Output = ECpoint<G, E>;
     ///the scalar is modulo N, the order of the elliptic curve!
-    fn mul(self, rhs: Scalar<N>) -> Self::Output {
+    fn mul(self, rhs: Scalar<E>) -> Self::Output {
         let mut res = ECpoint::Infinity;
         let rhs = rhs.unwrap();
         let mut point = self;

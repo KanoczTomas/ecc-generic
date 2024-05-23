@@ -19,10 +19,17 @@ struct Curve;
 impl EC for Curve {
     const A: U256 = U256([0;4]);
     const B: U256 = U256([7, 0, 0, 0]);
+    const N: U256 = U256([
+        13822214165235122497,
+        13451932020343611451,
+        18446744073709551614,
+        18446744073709551615,
+    ]);
 
     fn order_of_cyclic_subgroup<G: GroupOrder, E: EC>(&self) -> U256 {
         todo!()
     }
+    
     
     // const N: U256 = U256([0;4]);
 }

@@ -11,9 +11,9 @@ pub trait CurveOrder: PartialEq + Default + Copy + Debug{
 
 
 #[derive(Clone, Copy, PartialEq, Debug, Default)]
-pub struct Scalar<N: CurveOrder>(U256, PhantomData<N>);
+pub struct Scalar<N: EC>(U256, PhantomData<N>);
 
-impl<N: CurveOrder> Scalar<N> {
+impl<N: EC> Scalar<N> {
     pub fn new<T: Into<Scalar<N>>>(val: T) -> Self {
         let val: Scalar<N> = val.into();
         Self(val.0 % N::N, PhantomData)
@@ -35,7 +35,7 @@ impl<N: CurveOrder> Scalar<N> {
     }
 }
 
-impl<N: CurveOrder> std::ops::Add for Scalar<N> {
+impl<N: EC> std::ops::Add for Scalar<N> {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
         let (res, overflow) = self.0.overflowing_add(rhs.0);
@@ -47,13 +47,13 @@ impl<N: CurveOrder> std::ops::Add for Scalar<N> {
     }
 }
 
-impl<N: CurveOrder> std::ops::AddAssign for Scalar<N> {
+impl<N: EC> std::ops::AddAssign for Scalar<N> {
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs
     }
 }
 
-impl<N: CurveOrder> std::ops::Neg for Scalar<N> {
+impl<N: EC> std::ops::Neg for Scalar<N> {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
@@ -64,7 +64,7 @@ impl<N: CurveOrder> std::ops::Neg for Scalar<N> {
     }
 }
 
-impl<N: CurveOrder> std::ops::Sub for Scalar<N>{
+impl<N: EC> std::ops::Sub for Scalar<N>{
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -72,13 +72,13 @@ impl<N: CurveOrder> std::ops::Sub for Scalar<N>{
     }
 }
 
-impl<N: CurveOrder> std::ops::SubAssign for Scalar<N>{
+impl<N: EC> std::ops::SubAssign for Scalar<N>{
     fn sub_assign(&mut self, rhs: Self) {
         *self = *self - rhs
     }
 }
 
-impl<N: CurveOrder> std::ops::Mul for Scalar<N>{
+impl<N: EC> std::ops::Mul for Scalar<N>{
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
@@ -88,7 +88,7 @@ impl<N: CurveOrder> std::ops::Mul for Scalar<N>{
     }
 }
 
-impl<N: CurveOrder, E: EC, G: GroupOrder> std::ops::Mul<ECpoint<G, E>> for Scalar<N>{
+impl<E: EC, G: GroupOrder> std::ops::Mul<ECpoint<G, E>> for Scalar<E>{
     type Output = ECpoint<G, E>;
 
     fn mul(self, rhs: ECpoint<G, E>) -> Self::Output {
@@ -106,7 +106,7 @@ impl<N: CurveOrder, E: EC, G: GroupOrder> std::ops::Mul<ECpoint<G, E>> for Scala
     }
 }
 
-impl<N: CurveOrder> std::ops::MulAssign for Scalar<N> {
+impl<N: EC> std::ops::MulAssign for Scalar<N> {
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs
     }
@@ -115,7 +115,7 @@ impl<N: CurveOrder> std::ops::MulAssign for Scalar<N> {
 macro_rules! impl_from_for_zp_signed {
     ($($ti:ty,$tu:ty),*) => {
         $(
-            impl<N: CurveOrder> std::convert::From<$ti> for Scalar<N>{
+            impl<N: EC> std::convert::From<$ti> for Scalar<N>{
                 fn from(value: $ti) -> Self {
                     match value >= 0 {
                         //$tu is the unsigned counterpart as U256 from is implemented on for them
@@ -135,7 +135,7 @@ impl_from_for_zp_signed!(i8,u8,i16,u16,i32,u32,i64,u64,i128,u128);
 macro_rules! impl_from_for_zp_unsigned {
     ($($t:ty),*) => {
         $(
-            impl<N: CurveOrder> std::convert::From<$t> for Scalar<N>{
+            impl<N: EC> std::convert::From<$t> for Scalar<N>{
                 fn from(value: $t) -> Self {
                     Scalar(U256::from(value), PhantomData)
                 }
