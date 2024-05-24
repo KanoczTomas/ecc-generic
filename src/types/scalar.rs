@@ -2,13 +2,6 @@ use std::{fmt::Debug, marker::PhantomData};
 
 use crate::types::{U256, U512, ECpoint, EC};
 
-use super::GroupOrder;
-
-
-pub trait CurveOrder: PartialEq + Default + Copy + Debug{
-    const N: U256;    
-}
-
 
 #[derive(Clone, Copy, PartialEq, Debug, Default)]
 pub struct Scalar<E: EC>(U256, PhantomData<E>);
@@ -121,10 +114,10 @@ impl<E: EC> std::ops::Div for Scalar<E> {
     }
 }
 
-impl<E: EC, G: GroupOrder> std::ops::Mul<ECpoint<G, E>> for Scalar<E>{
-    type Output = ECpoint<G, E>;
+impl<E: EC> std::ops::Mul<ECpoint<E>> for Scalar<E>{
+    type Output = ECpoint<E>;
 
-    fn mul(self, rhs: ECpoint<G, E>) -> Self::Output {
+    fn mul(self, rhs: ECpoint<E>) -> Self::Output {
         let mut res = ECpoint::Infinity;
         let lhs = self.unwrap();
         let mut point = rhs;

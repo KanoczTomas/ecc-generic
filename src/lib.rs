@@ -5,39 +5,60 @@ pub mod utils;
 #[cfg(test)]
 mod tests {
     use crate::types::*;
-    // use super::*;
-    #[derive(Debug, PartialEq, Clone, Copy, Default)]
-    struct P;
-    impl GroupOrder for P {
-        const P: U256 = U256([127, 0, 0, 0]);
-    }
-    type Zp = crate::types::Zp<P>;
-    #[derive(Debug, Default, Clone, Copy, PartialEq)]
-    struct HugeP;
-    impl GroupOrder for HugeP {
-        const P: U256 = U256::MAX;
-    }
-    type ZpH = crate::types::Zp<HugeP>;
-    // #[derive(Debug, PartialEq, Clone, Copy, Default)]
-    // struct N;
-    // impl CurveOrder for N {
-    //     const N: U256 = U256([127, 0, 0, 0]);
-    // }
     
     #[derive(Debug, Default, Clone, Copy, PartialEq)]
-    struct ElipticCurve;
-    impl EC for ElipticCurve {
+    struct EllipticCurve;
+    impl EC for EllipticCurve {
         const A: U256 = U256([0;4]);
         const B: U256 = U256([7,0,0,0]);
         const N: U256 = U256([127, 0, 0, 0]);
-        fn order_of_cyclic_subgroup<G: GroupOrder, E: EC>(&self) -> U256 {
+        const P: U256 = U256([127, 0, 0, 0]);
+        fn order_of_cyclic_subgroup<E: EC>(&self) -> U256 {
             todo!()
         }
         
     }
-    
-    type ECpoint = crate::types::ECpoint<P, ElipticCurve>;
-    type Scalar = crate::types::Scalar<ElipticCurve>;
+    type Zp = crate::types::Zp<EllipticCurve>;   
+    type ECpoint = crate::types::ECpoint<EllipticCurve>;
+    type Scalar = crate::types::Scalar<EllipticCurve>;
+
+    #[derive(Debug, Default, Clone, Copy, PartialEq)]
+    struct HugeDummyCurve;
+    impl EC for HugeDummyCurve {
+        const A: U256 = U256([0;4]);
+        const B: U256 = U256([0;4]);
+        const N: U256 = U256([0;4]);
+        const P: U256 = U256::MAX;    
+        fn order_of_cyclic_subgroup<E: EC>(&self) -> U256 {
+            todo!()
+        }
+    }
+    type ZpH = crate::types::Zp<HugeDummyCurve>;
+
+    #[derive(Debug, Default, Clone, Copy, PartialEq)]
+    struct Secp256k1;
+    impl EC for Secp256k1 {
+        const A: U256 = U256([0;4]);
+        const B: U256 = U256([7, 0, 0, 0]);
+        const N: U256 = U256([
+            13822214165235122497,
+            13451932020343611451,
+            18446744073709551614,
+            18446744073709551615,
+        ]);
+        const P: U256 = U256([
+            18446744069414583343,
+            18446744073709551615,
+            18446744073709551615,
+            18446744073709551615,
+        ]);
+        fn order_of_cyclic_subgroup<E: EC>(&self) -> U256 {
+            todo!()
+        }     
+    }
+    type ZpSecp256k1 = crate::types::Zp<Secp256k1>;
+    type ECpointSecp256k1 = crate::types::ECpoint<Secp256k1>;
+    type ScalarSecp256k1 = crate::types::Scalar<Secp256k1>;
     #[test]
     fn test_zp_new(){
         let a = Zp::new(130);
@@ -45,17 +66,12 @@ mod tests {
     }
     #[test]
     fn test_zp_addition(){
-        #[derive(Debug, Default, Clone, Copy, PartialEq)]
-        struct HugeP;
-        impl GroupOrder for HugeP {
-            // const P: U256 = U256([u64::MAX, u64::MAX, u64::MAX, u64::MAX]);
-            const P: U256 = U256::MAX;
-        }
+
         let a = Zp::new(126);
         let b = Zp::new(1);
         assert_eq!(a + b, Zp::new(0));
-        let a = crate::types::Zp::<HugeP>::new(U256::MAX - 1);
-        let b = crate::types::Zp::<HugeP>::new(U256::MAX - 1);
+        let a = ZpH::new(U256::MAX - 1);
+        let b = ZpH::new(U256::MAX - 1);
         assert_eq!((a + b).unwrap(), U256::MAX - 2);
     }
     #[test]
@@ -84,19 +100,12 @@ mod tests {
     }
     #[test]
     fn test_substract_2_different_values(){
-        #[derive(Debug, Default, Clone, Copy, PartialEq)]
-        struct HugeP;
-        impl GroupOrder for HugeP {
-            const P: U256 = U256::MAX;
-        }
         let a = Zp::new(5);
         let b = Zp::new(10);
         assert_eq!(a - b, Zp::new(122));
-        let a = crate::types::Zp::<HugeP>::new(3);
-        let b = crate::types::Zp::<HugeP>::new(U256::MAX);
+        let a = ZpH::new(3);
+        let b = ZpH::new(U256::MAX);
         assert_eq!(a - b, 3.into());
-
-        
     }
     #[test]
     fn test_sub_assign(){
@@ -106,12 +115,6 @@ mod tests {
     }
     #[test]
     fn test_mul(){
-        #[derive(Debug, Default, Clone, Copy, PartialEq)]
-        struct HugeP;
-        impl GroupOrder for HugeP {
-            const P: U256 = U256::MAX;
-        }
-        type ZpH = crate::types::Zp<HugeP>;
         let a = Zp::new(127);
         let b = Zp::new(3);
         assert_eq!(a * b, Zp::new(0));
@@ -141,7 +144,6 @@ mod tests {
     #[test]
     fn test_ecpoint_new() {
         let (x, y) = (0, 1);
-        // let curve = Curve::<_, P>::new().a(0).b(7).finalize();
         let ec_point = ECpoint::new(x, y);
         assert_eq!(None, ec_point);
         let (x, y) = (0, 0);
@@ -152,7 +154,6 @@ mod tests {
     fn test_ecpoint_on_curve() {
         let x = 123;
         let y = 109;
-        // let curve = Curve::<_, P>::new().a(0).b(7).finalize();
         let ec_point = ECpoint::new(x, y);
         assert!(ec_point.is_some());
         let ec_point = ec_point.unwrap();
@@ -163,18 +164,15 @@ mod tests {
     fn test_ecpoint_not_on_curve() {
         let x = 123;
         let y = 108;
-        // let curve = Curve::<_, P>::new().a(1).b(1).finalize();
         let ec_point = ECpoint::new(x, y);
         assert!(ec_point.is_none());
     }
     #[test]
     fn test_adding_infinities() {
-        // let curve = Curve::<_, P>::new().a(0).b(7).finalize();
         let a = ECpoint::new(2, 53).unwrap();
         let b = ECpoint::Infinity;
         assert_eq!(a + b, a);
         assert_eq!(b + a, a);
-
         let a = ECpoint::Infinity;
         let b = ECpoint::Infinity;
         assert_eq!(a + b, ECpoint::Infinity);
@@ -182,7 +180,6 @@ mod tests {
     #[test]
     fn test_adding_additive_inverses() {
         // https://graui.de/code/elliptic2/
-        // let curve = Curve::<_, P>::new().a(0).b(7).finalize();
         let a = ECpoint::new(2, 53).unwrap();
         let b = -a;
         assert_eq!(a + b, ECpoint::Infinity);
@@ -222,70 +219,25 @@ mod tests {
     }
     #[test]
     fn skalar_multiplication_from_right() {
-        #[derive(Debug, Default, Clone, Copy, PartialEq)]
-        struct Secp256k1P;
-        impl GroupOrder for Secp256k1P {
-            //115792089237316195423570985008687907853269984665640564039457584007908834671663
-            const P: U256 = U256([
-                18446744069414583343,
-                18446744073709551615,
-                18446744073709551615,
-                18446744073709551615,
-            ]);
-        }
-        #[derive(Debug, Default, Clone, Copy, PartialEq)]
-        struct CurveP256k1;
-        impl EC for CurveP256k1 {
-            const A: U256 = U256([0;4]);
-            const B: U256 = U256([7, 0, 0, 0]);
-            const N: U256 = U256([
-                13822214165235122497,
-                13451932020343611451,
-                18446744073709551614,
-                18446744073709551615,
-            ]);
-            //115792089237316195423570985008687907852837564279074904382605163141518161494337
-            fn order_of_cyclic_subgroup<G: GroupOrder, E: EC>(&self) -> U256 {
-                todo!()
-            }
-            
-        }
-        // #[derive(Debug, Default, Clone, Copy, PartialEq)]
-        // struct CurveOrderSecp256k1;
-        // impl CurveOrder for CurveOrderSecp256k1 {
-        //     const N: U256 = U256([
-        //         13822214165235122497,
-        //         13451932020343611451,
-        //         18446744073709551614,
-        //         18446744073709551615,
-        //     ]);
-        // }
-        type ZpH = crate::types::Zp<Secp256k1P>;
-        type ECpointH = crate::types::ECpoint<Secp256k1P, CurveP256k1>;
-        type ScalarH = crate::types::Scalar<CurveP256k1>;
         let a = ECpoint::new(38, 53).unwrap();
         assert_eq!(a , a * Scalar::new(1));
         assert_eq!(a + a, a * Scalar::new(2));
         assert_eq!(a + a + a, a * Scalar::new(3));
         assert_eq!(a + a + a + a, a * Scalar::new(4));
         assert_eq!(-a, a * Scalar::new(-1));
-        let x = ZpH::new(U256::from_str_radix("0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", 16).unwrap());
-        let y = (x.pow(3) + ZpH::new(CurveP256k1::A) * x + ZpH::new(CurveP256k1::B)).sqrt().unwrap();
-        let g = ECpointH::new(x, y).unwrap();
-        let b = ScalarH::new(- 3);
-        assert_eq!(g * ScalarH::one(), 
-                ECpointH::new(
-                    ZpH::new(U256::from_str_radix("0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", 16).unwrap()),
-                    ZpH::new(
+        let x = ZpSecp256k1::new(U256::from_str_radix("0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", 16).unwrap());
+        let y = (x.pow(3) + ZpSecp256k1::new(Secp256k1::A) * x + ZpSecp256k1::new(Secp256k1::B)).sqrt().unwrap();
+        let g = ECpointSecp256k1::new(x, y).unwrap();
+        let b = ScalarSecp256k1::new(- 3);
+        assert_eq!(g * ScalarSecp256k1::one(), 
+                ECpointSecp256k1::new(
+                    ZpSecp256k1::new(U256::from_str_radix("0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", 16).unwrap()),
+                    ZpSecp256k1::new(
                         U256::from_dec_str("32670510020758816978083085130507043184471273380659243275938904335757337482424").unwrap()
                     )
                 ).unwrap()
             );
         assert_eq!(g * b, -g -g -g);
-
-        //test why it is not working for these parameters, the script 
-        //from https://github.com/jacksoninfosec/tonelli-shanks/blob/main/tonelli-shanks.py
-        //says it should be ok, but have to test parameters for it!
     }
     #[test]
     fn skalar_multiplication_from_left() {
@@ -309,30 +261,6 @@ mod tests {
         let left = p*2 + p*3 + p*5/5 - p*2;
         let right = p*4;
         assert_eq!(left, right);
-    }
-    #[test]
-    fn test_curve_n_points() {
-        #[derive(Debug, Clone, Copy, Default, PartialEq)]
-        struct P53;
-        impl GroupOrder for P53 {
-            const P: U256 = U256([53, 0, 0, 0]);
-        }
-        let n = ElipticCurve.n_curve_points::<P, ElipticCurve>();
-        assert_eq!(n, 127.into());
-        let n = ElipticCurve.n_curve_points::<P53, ElipticCurve>();
-        assert_eq!(n, 54.into());
-    }
-    #[test]
-    fn test_curve_cofactor() {
-        #[derive(Debug, Clone, Copy, Default, PartialEq)]
-        struct P;
-        impl GroupOrder for P {
-            const P: U256 = U256([53, 0, 0, 0]);
-        }
-        let h = ElipticCurve.cofactor::<P, ElipticCurve>();
-        let n = ElipticCurve.n_curve_points::<P, ElipticCurve>();
-        dbg!(n);
-        assert_eq!(h, 0.into());
     }
     #[test]
     fn test_raise_zp_to_power() {

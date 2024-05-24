@@ -1,19 +1,8 @@
 use std::io::{stdout, Write};
 use rand::{thread_rng, Rng};
 
-use ecc_generic::types::{ECpoint, GroupOrder, U256, EC, Zp};
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
-struct P;
-impl GroupOrder for P {
-    // const P: ecc_generic::types::U256 = U256::MAX;
-    const P: U256 = U256([
-        18446744069414583343,
-        18446744073709551615,
-        18446744073709551615,
-        18446744073709551615,
-    ]);
-    // const P: U256 = U256([127, 0, 0, 0]);
-}
+use ecc_generic::types::{ECpoint, U256, EC, Zp};
+
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 struct Curve;
 impl EC for Curve {
@@ -24,9 +13,15 @@ impl EC for Curve {
         13451932020343611451,
         18446744073709551614,
         18446744073709551615,
+        ]);
+    const P: U256 = U256([
+        18446744069414583343,
+        18446744073709551615,
+        18446744073709551615,
+        18446744073709551615,
     ]);
 
-    fn order_of_cyclic_subgroup<G: GroupOrder, E: EC>(&self) -> U256 {
+    fn order_of_cyclic_subgroup<E: EC>(&self) -> U256 {
         todo!()
     }
     
@@ -35,7 +30,7 @@ impl EC for Curve {
 }
 fn main() {
     // let mut p;
-    let mut x_p: Zp<P>;
+    let mut x_p: Zp<Curve>;
     let mut y_p = Zp::zero();
     // let mut found = false;
     // for x in 0..u16::MAX {
@@ -66,7 +61,7 @@ fn main() {
             continue;
         }
         y_p = _y_p.unwrap();
-        let p = ECpoint::<P, Curve>::new(x_p, y_p);
+        let p = ECpoint::<Curve>::new(x_p, y_p);
         println!("\rx: {}, y: {}", x_p.unwrap(), y_p.unwrap());
         let _ = stdout().flush();
         if p.is_some() {

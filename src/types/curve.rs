@@ -1,5 +1,5 @@
 use std::{fmt::Debug, marker::PhantomData};
-use crate::{types::{ECpoint, GroupOrder, U256}, utils::find_factors};
+use crate::{types::{ECpoint, U256}, utils::find_factors};
 
 
 pub trait EC: PartialEq + Default + Copy{
@@ -7,9 +7,13 @@ pub trait EC: PartialEq + Default + Copy{
     const A: U256;
     ///b constant in the elliptic curve equation
     const B: U256;
+    ///N constant is the order of the ellipcit curve, in other words
+    ///how many points the generator generates
     const N: U256;
+    ///P is the prime used in the Fp field the EC coordinates work in
+    const P: U256;
     ///Finds random point P where nP = 0 and n != 1
-    // fn find_generator<G: GroupOrder, E: EC>(&mut self) -> ECpoint<G, E> {
+    // fn find_generator<E: EC>(&mut self) -> ECpoint<G, E> {
     //     //pick random x coordinate
     //     let mut x = [0;4];
     //     self.fill(&mut x);
@@ -21,11 +25,11 @@ pub trait EC: PartialEq + Default + Copy{
     ///implementation, goes through whole space and checks for 
     ///equation. For high P-s implement your own algo, e.g. 
     ///Schoof's algorithm
-    fn n_curve_points<G: GroupOrder, E: EC>(&self) -> U256 {
+    fn n_curve_points<E: EC>(&self) -> U256 {
         let (mut count, mut x, mut y) = (U256::zero(), U256::zero(), U256::zero());
-        while x != G::P  {
-            while y != G::P  {
-                if let Some(_) = ECpoint::<G,E>::new(x, y) {
+        while x != E::P  {
+            while y != E::P  {
+                if let Some(_) = ECpoint::<E>::new(x, y) {
                     count += U256::one();
                 }
                 y += U256::one();
@@ -36,22 +40,22 @@ pub trait EC: PartialEq + Default + Copy{
         count += U256::one(); //we add the point at infinity
         count
     }
-    fn cofactor<G: GroupOrder, E: EC>(&self) -> U256 {
-        let a = find_factors(Self::n_curve_points::<G, E>(&self));
+    fn cofactor<E: EC>(&self) -> U256 {
+        let a = find_factors(Self::n_curve_points::<E>(&self));
         dbg!(&a);
         a[0]
     }
-    fn order_of_cyclic_subgroup<G: GroupOrder, E: EC>(&self) -> U256; 
+    fn order_of_cyclic_subgroup<E: EC>(&self) -> U256; 
 }
 
 #[allow(non_snake_case)]
 #[derive(Default, Debug)]
-pub struct Curve<S, G: GroupOrder, E: EC> {
+pub struct Curve<S, E: EC> {
     pub name: String,
     pub a: E,
     pub b: E,
-    pub G: ECpoint<G, E>,
-    pub H: Option<ECpoint<G, E>>,
+    pub G: ECpoint<E>,
+    pub H: Option<ECpoint<E>>,
     pub N: U256,
     pub p: U256,
     pub h: u64,
@@ -65,7 +69,7 @@ pub struct FinalizedCurve;
 pub struct UnfinalizedCurve;
 
 #[allow(non_snake_case)]
-impl<G: GroupOrder, E: EC> Curve<UnfinalizedCurve, G, E> {
+impl<E: EC> Curve<UnfinalizedCurve, E> {
     pub fn new() -> Self {
         Curve::default()
     }
@@ -77,11 +81,11 @@ impl<G: GroupOrder, E: EC> Curve<UnfinalizedCurve, G, E> {
     //     self.b = b.into();
     //     self
     // }
-    pub fn G<T: Into<ECpoint<G, E>>>(mut self, G: T) -> Self{
+    pub fn G<T: Into<ECpoint<E>>>(mut self, G: T) -> Self{
         self.G = G.into();
         self
     }
-    pub fn H<T: Into<ECpoint<G, E>>>(mut self, H: T) -> Self{
+    pub fn H<T: Into<ECpoint<E>>>(mut self, H: T) -> Self{
         let _ = self.H.insert(H.into());
         self
     }
@@ -97,14 +101,14 @@ impl<G: GroupOrder, E: EC> Curve<UnfinalizedCurve, G, E> {
     //     self.n = n.into();
     //     self
     // }
-    pub fn finalize(self) -> Curve<FinalizedCurve, G, E>{
+    pub fn finalize(self) -> Curve<FinalizedCurve, E>{
         Curve { name: self.name, 
             a: self.a, 
             b: self.b, 
             G: self.G, 
             H: self.H, 
             N: self.N, 
-            p: G::P,
+            p: E::P,
             h: self.h, 
             // n: N::N, 
             _state: PhantomData,

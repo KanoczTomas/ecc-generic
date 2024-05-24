@@ -1,21 +1,21 @@
 use std::{fmt::Debug, marker::PhantomData};
 
-use crate::types::{U256, U512};
+use crate::types::{U256, U512, EC};
 
-pub trait GroupOrder: PartialEq + Default + Copy + Debug{
-    const P: U256;    
-}
+// pub trait GroupOrder: PartialEq + Default + Copy + Debug{
+//     const P: U256;    
+// }
 
 
 
 #[derive(Clone, Copy, PartialEq, Debug, Default)]
-pub struct Zp<G:GroupOrder>(U256, PhantomData<G>);
+pub struct Zp<E: EC>(U256, PhantomData<E>);
 
-impl<G: GroupOrder> Zp<G> {
-    pub const ZERO: Zp<G> = Zp(U256([0;4]), PhantomData);
-    pub fn new<T: Into<Zp<G>>>(val: T) -> Self {
-        let val: Zp<G> = val.into();
-        Self(val.0 % G::P, PhantomData)
+impl<E: EC> Zp<E> {
+    pub const ZERO: Zp<E> = Zp(U256([0;4]), PhantomData);
+    pub fn new<T: Into<Zp<E>>>(val: T) -> Self {
+        let val: Zp<E> = val.into();
+        Self(val.0 % E::P, PhantomData)
     }
     pub fn zero() -> Self {
         Zp::new(0)
@@ -33,10 +33,10 @@ impl<G: GroupOrder> Zp<G> {
         self.0
     }
     ///We assume P is a prime!
-    fn multiplicative_inverse(n: Zp<G>) -> Zp<G> {
+    fn multiplicative_inverse(n: Zp<E>) -> Zp<E> {
         // from
         // https://github.com/paritytech/bigint/blob/master/src/uint.rs
-        let p = G::P;
+        let p = E::P;
         let mut mn = (p, n.0);
 		let mut xy = (U256::zero(), U256::one());
 
@@ -53,11 +53,11 @@ impl<G: GroupOrder> Zp<G> {
 		Zp::new(xy.0)
     }
     ///Raises self to the power of exp using square and multiply algorithm.
-    pub fn pow<T: Into<U256>>(self, exp: T) -> Zp<G> {
+    pub fn pow<T: Into<U256>>(self, exp: T) -> Zp<E> {
         let mut base = U512::from(self.unwrap());
         let mut exp = exp.into();
         let mut res = U512::one();
-        let p = U512::from(G::P);
+        let p = U512::from(E::P);
         while exp != 0.into() {
             if exp & 1.into() == 1.into() {
                 res = (res * base) % p; //multiply
@@ -72,14 +72,14 @@ impl<G: GroupOrder> Zp<G> {
     ///it is a quadratic residue mod p.We use Euler's criterion to do so.
     pub fn is_quadratic_residue(self) -> bool {
         //mod 2, trivial results
-        if G::P == 2.into() {
+        if E::P == 2.into() {
             return true
         }
         //if se;f % p == 0
         //As Zp is already mod p, we just have to check if it is 0
         match self.is_zero() {
             true => true,
-            false => self.pow((G::P- 1) / 2) == 1.into()
+            false => self.pow((E::P- 1) / 2) == 1.into()
         }
 
     }
@@ -97,13 +97,13 @@ impl<G: GroupOrder> Zp<G> {
         }
         //If p=3(mod 4) and we know n is a quadratic residue then 
         //we can solve x^2=n(mod p) directly
-        if G::P % U256::from(4) == 3.into() {
-            return Some(self.pow((G::P+1)/4))
+        if E::P % U256::from(4) == 3.into() {
+            return Some(self.pow((E::P+1)/4))
         }
         //So now p=1(mod 4), (although this is not needed in the algorithm).
         //Write p - 1 = (2^S)(Q) where Q is odd
         #[allow(non_snake_case)]
-        let mut Q = G::P - 1;
+        let mut Q = E::P - 1;
         #[allow(non_snake_case)]
         let mut S = U256::zero();
         while Q % U256::from(2) == 0.into() {
@@ -133,7 +133,7 @@ impl<G: GroupOrder> Zp<G> {
             }
             
             //Calculate b, M, c, t, R
-            let pow2 = Zp::<G>::new(2).pow(M - i - 1);
+            let pow2 = Zp::<E>::new(2).pow(M - i - 1);
             let b = c.pow(pow2.unwrap());
             M = i;
             c = b * b;
@@ -147,36 +147,36 @@ impl<G: GroupOrder> Zp<G> {
 
 }
 
-impl<G: GroupOrder> std::ops::Add for Zp<G> {
+impl<E: EC> std::ops::Add for Zp<E> {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
         let (res, overflow) = self.0.overflowing_add(rhs.0);
-        Zp::new(if overflow || res >= G::P {
-            res.overflowing_sub(G::P).0
+        Zp::new(if overflow || res >= E::P {
+            res.overflowing_sub(E::P).0
         } else {
             res
         })
     }
 }
 
-impl<G: GroupOrder> std::ops::AddAssign for Zp<G> {
+impl<E: EC> std::ops::AddAssign for Zp<E> {
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs
     }
 }
 
-impl<G: GroupOrder> std::ops::Neg for Zp<G> {
+impl<E: EC> std::ops::Neg for Zp<E> {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
         match self.0.is_zero() {
             true => Zp::zero(),
-            false => Zp::new(G::P - self.0)
+            false => Zp::new(E::P - self.0)
         }
     }
 }
 
-impl<G: GroupOrder> std::ops::Sub for Zp<G>{
+impl<E: EC> std::ops::Sub for Zp<E>{
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -184,29 +184,29 @@ impl<G: GroupOrder> std::ops::Sub for Zp<G>{
     }
 }
 
-impl<G: GroupOrder> std::ops::SubAssign for Zp<G>{
+impl<E: EC> std::ops::SubAssign for Zp<E>{
     fn sub_assign(&mut self, rhs: Self) {
         *self = *self - rhs
     }
 }
 
-impl<G: GroupOrder> std::ops::Mul for Zp<G>{
+impl<E: EC> std::ops::Mul for Zp<E>{
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
         let res = U512::from(self.unwrap()) * U512::from(rhs.unwrap());
-        let res: U256 = (res % U512::from(G::P)).try_into().unwrap();//safe as we do modulo
+        let res: U256 = (res % U512::from(E::P)).try_into().unwrap();//safe as we do modulo
         Zp::new(res)
     }
 }
 
-impl<G: GroupOrder> std::ops::MulAssign for Zp<G> {
+impl<E: EC> std::ops::MulAssign for Zp<E> {
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs
     }
 }
 
-impl<G: GroupOrder> std::ops::Div for Zp<G> {
+impl<E: EC> std::ops::Div for Zp<E> {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
@@ -217,7 +217,7 @@ impl<G: GroupOrder> std::ops::Div for Zp<G> {
 macro_rules! impl_from_for_zp_signed {
     ($($ti:ty,$tu:ty),*) => {
         $(
-            impl<G: GroupOrder> std::convert::From<$ti> for Zp<G>{
+            impl<E: EC> std::convert::From<$ti> for Zp<E>{
                 fn from(value: $ti) -> Self {
                     match value >= 0 {
                         //$tu is the unsigned counterpart as U256 from is implemented on for them
@@ -237,7 +237,7 @@ impl_from_for_zp_signed!(i8,u8,i16,u16,i32,u32,i64,u64,i128,u128);
 macro_rules! impl_from_for_zp_unsigned {
     ($($t:ty),*) => {
         $(
-            impl<G: GroupOrder> std::convert::From<$t> for Zp<G>{
+            impl<E: EC> std::convert::From<$t> for Zp<E>{
                 fn from(value: $t) -> Self {
                     Zp(U256::from(value), PhantomData)
                 }

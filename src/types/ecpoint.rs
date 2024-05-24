@@ -1,28 +1,27 @@
 use std::marker::PhantomData;
 
-use crate::types::{Zp, GroupOrder, EC, Scalar, U256};
+use crate::types::{Zp, EC, Scalar, U256};
 #[derive(Default,Debug, PartialEq, Clone, Copy)]
 ///Represents a Point on curve that can be expressed with x,y coordinates
-pub struct Point<G: GroupOrder, E: EC> {
-    pub x: Zp<G>,
-    pub y: Zp<G>,
-    _curve: PhantomData<E>
+pub struct Point<E: EC> {
+    pub x: Zp<E>,
+    pub y: Zp<E>,
 }
 
 #[derive(Default, Debug, PartialEq, Clone, Copy)]
 ///Represents the entire set of points, including inifnity
-pub enum ECpoint<G: GroupOrder, E: EC> {
+pub enum ECpoint<E: EC> {
     #[default]
     Infinity,
-    Point(Point<G, E>)
+    Point(Point<E>)
 }
 
-impl<G: GroupOrder, E: EC> ECpoint<G, E> {
-    pub fn new<U: Into<Zp<G>>, T: Into<Zp<G>>>(x: U, y: T) -> Option<Self> {
+impl<E: EC> ECpoint<E> {
+    pub fn new<U: Into<Zp<E>>, T: Into<Zp<E>>>(x: U, y: T) -> Option<Self> {
         let (x, y) = (x.into(), y.into());
-        let (a, b): (Zp<G>, Zp<G>) = (Zp::new(E::A), Zp::new(E::B));
+        let (a, b): (Zp<E>, Zp<E>) = (Zp::new(E::A), Zp::new(E::B));
         if y.pow(2) == x.pow(3) + a * x + b {
-            Some(ECpoint::Point(Point{x, y, _curve: PhantomData}))
+            Some(ECpoint::Point(Point{x, y}))
         } else {
             None
         }
@@ -33,21 +32,21 @@ impl<G: GroupOrder, E: EC> ECpoint<G, E> {
             Self::Point(_) => false
         }
     }
-    pub fn get_point(&self) -> Option<&Point<G, E>> {
+    pub fn get_point(&self) -> Option<&Point<E>> {
         match self {
             ECpoint::Infinity => None,
             ECpoint::Point(p) => Some(p)
         }
     }
     ///Warning, panics on infinity!
-    pub fn x(&self) -> Zp<G> {
+    pub fn x(&self) -> Zp<E> {
         match self {
             ECpoint::Infinity => panic!("Infinity has no x coordinate"),
             ECpoint::Point(p) => p.x
         }
     }
     ///Warning, panics on infinity!
-    pub fn y(&self) -> Zp<G> {
+    pub fn y(&self) -> Zp<E> {
         match self {
             ECpoint::Infinity => panic!("Infinity has no y coordinate"),
             ECpoint::Point(p) => p.y
@@ -55,7 +54,7 @@ impl<G: GroupOrder, E: EC> ECpoint<G, E> {
     }
 }
 
-impl<G: GroupOrder, E: EC> std::ops::Add for ECpoint<G, E> {
+impl<E: EC> std::ops::Add for ECpoint<E> {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
         match (&self, &rhs) {
@@ -77,27 +76,27 @@ impl<G: GroupOrder, E: EC> std::ops::Add for ECpoint<G, E> {
                 let x = lambda * lambda - p.x() - q.x();
                 let y = lambda * (p.x() - x) - p.y();
 
-                ECpoint::Point(Point { x, y, _curve: PhantomData })
+                ECpoint::Point(Point { x, y})
             }
         }
     }
 }
 
-impl<G: GroupOrder, E: EC> std::ops::AddAssign for ECpoint<G, E> {
+impl<E: EC> std::ops::AddAssign for ECpoint<E> {
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs
     }
 }
 
-impl<G: GroupOrder, E: EC> std::ops::Neg for ECpoint<G, E> {
+impl<E: EC> std::ops::Neg for ECpoint<E> {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        Self::Point(Point { x: self.x(), y: -self.y(), _curve: PhantomData })
+        Self::Point(Point { x: self.x(), y: -self.y() })
     }
 }
 
-impl<G: GroupOrder, E: EC> std::ops::Sub for ECpoint<G, E> {
+impl<E: EC> std::ops::Sub for ECpoint<E> {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -106,8 +105,8 @@ impl<G: GroupOrder, E: EC> std::ops::Sub for ECpoint<G, E> {
 }
 
 ///scalar multiplication
-impl<G: GroupOrder, E: EC> std::ops::Mul<Scalar<E>> for ECpoint<G, E> {
-    type Output = ECpoint<G, E>;
+impl<E: EC> std::ops::Mul<Scalar<E>> for ECpoint<E> {
+    type Output = ECpoint<E>;
     ///the scalar is modulo N, the order of the elliptic curve!
     fn mul(self, rhs: Scalar<E>) -> Self::Output {
         let mut res = ECpoint::Infinity;
@@ -123,7 +122,7 @@ impl<G: GroupOrder, E: EC> std::ops::Mul<Scalar<E>> for ECpoint<G, E> {
         res
     }
 }
-impl<G: GroupOrder, E: EC> std::ops::MulAssign<Scalar<E>> for ECpoint<G, E> {
+impl<E: EC> std::ops::MulAssign<Scalar<E>> for ECpoint<E> {
     fn mul_assign(&mut self, rhs: Scalar<E>) {
         *self = *self * rhs
     }
@@ -134,8 +133,8 @@ impl<G: GroupOrder, E: EC> std::ops::MulAssign<Scalar<E>> for ECpoint<G, E> {
 macro_rules! impl_mut_for_ecpoint {
     ($($t:ty),*) => {
         $(
-            impl<G: GroupOrder, E: EC> std::ops::Mul<$t> for ECpoint<G, E> {
-                type Output = ECpoint<G, E>;
+            impl<E: EC> std::ops::Mul<$t> for ECpoint<E> {
+                type Output = ECpoint<E>;
             
                 fn mul(self, rhs: $t) -> Self::Output {
                     let rhs: Scalar<E> = rhs.into();
@@ -151,8 +150,8 @@ macro_rules! impl_mut_for_ecpoint {
 impl_mut_for_ecpoint!(i8, u8, i16, u16, i32, u32, i64, u64, i128, u128);
 
 
-impl<G: GroupOrder, E: EC> std::ops::Div<Scalar<E>> for ECpoint<G, E>{
-    type Output = ECpoint<G, E>;
+impl<E: EC> std::ops::Div<Scalar<E>> for ECpoint<E>{
+    type Output = ECpoint<E>;
 
     fn div(self, rhs: Scalar<E>) -> Self::Output {
         (Scalar::new(1)/rhs) * self
@@ -162,8 +161,8 @@ impl<G: GroupOrder, E: EC> std::ops::Div<Scalar<E>> for ECpoint<G, E>{
 macro_rules! impl_div_for_ecpoint {
     ($($t:ty),*) => {
         $(
-            impl<G: GroupOrder, E: EC> std::ops::Div<$t> for ECpoint<G, E> {
-                type Output = ECpoint<G, E>;
+            impl<E: EC> std::ops::Div<$t> for ECpoint<E> {
+                type Output = ECpoint<E>;
             
                 fn div(self, rhs: $t) -> Self::Output {
                     let rhs: Scalar<E> = rhs.into();
@@ -176,7 +175,7 @@ macro_rules! impl_div_for_ecpoint {
 
 impl_div_for_ecpoint!(i8,u8,i16,u16,i32,u32,i64,u64,i128,u128,U256);
 
-impl<G: GroupOrder, E: EC> std::ops::DivAssign<Scalar<E>> for ECpoint<G, E> {
+impl<E: EC> std::ops::DivAssign<Scalar<E>> for ECpoint<E> {
     fn div_assign(&mut self, rhs: Scalar<E>) {
         *self = *self / rhs
     }
