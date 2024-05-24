@@ -2,8 +2,6 @@ use std::{fmt::Debug, marker::PhantomData};
 
 use crate::types::{U256, U512};
 
-use super::{ECpoint, EC};
-
 pub trait GroupOrder: PartialEq + Default + Copy + Debug{
     const P: U256;    
 }
@@ -201,24 +199,6 @@ impl<G: GroupOrder> std::ops::Mul for Zp<G>{
         Zp::new(res)
     }
 }
-
-// impl<G: GroupOrder, E: EC> std::ops::Mul<ECpoint<G, E>> for Zp<G>{
-//     type Output = ECpoint<G, E>;
-
-//     fn mul(self, rhs: ECpoint<G, E>) -> Self::Output {
-//         let mut res = ECpoint::Infinity;
-//         let lhs = self.unwrap();
-//         let mut point = rhs;
-
-//         for b in 0..256 {
-//             if lhs.bit(b as usize) {
-//                 res += point;
-//             }
-//             point += point; //doubleing
-//         }
-//         res
-//     }
-// }
 
 impl<G: GroupOrder> std::ops::MulAssign for Zp<G> {
     fn mul_assign(&mut self, rhs: Self) {

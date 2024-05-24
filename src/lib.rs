@@ -216,6 +216,11 @@ mod tests {
         assert_eq!(a + a - a - a - a, minus_a);
     }
     #[test]
+    fn skalar_multiplication_with_zero() {
+        let a = ECpoint::new(38, 53).unwrap();
+        assert_eq!(a * 0, ECpoint::Infinity);
+    }
+    #[test]
     fn skalar_multiplication_from_right() {
         #[derive(Debug, Default, Clone, Copy, PartialEq)]
         struct Secp256k1P;
@@ -290,21 +295,21 @@ mod tests {
         assert_eq!(a + a + a, Scalar::new(3) * a);
         assert_eq!(a + a + a + a, Scalar::new(4) * a);
     }
-    // #[test]
-    // fn skalar_multiplication_assign() {
-    //     let mut a = ECpoint::new(38, 53).unwrap();
-    //     let b = a; //copied!
-    //     a *= Zp::new(5);
-    //     assert_eq!(b + b + b + b + b, a);
-    // }
-    // #[test]
-    // fn test_some_algebra() {
-    //     // 2P + 3P + 5P/5P - 2P  = 4P
-    //     let p = ECpoint::new(38, 53).unwrap();
-    //     let left = p*2 + p*3 + p*5/5 - p*2;
-    //     let right = p*4;
-    //     assert_eq!(left, right);
-    // }
+    #[test]
+    fn skalar_multiplication_assign() {
+        let mut a = ECpoint::new(38, 53).unwrap();
+        let b = a; //copied!
+        a *= Scalar::new(5);
+        assert_eq!(b + b + b + b + b, a);
+    }
+    #[test]
+    fn test_some_algebra() {
+        // 2P + 3P + 5P/5P - 2P  = 4P
+        let p = ECpoint::new(38, 53).unwrap();
+        let left = p*2 + p*3 + p*5/5 - p*2;
+        let right = p*4;
+        assert_eq!(left, right);
+    }
     #[test]
     fn test_curve_n_points() {
         #[derive(Debug, Clone, Copy, Default, PartialEq)]

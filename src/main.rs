@@ -1,5 +1,5 @@
 use std::io::{stdout, Write};
-use rand::{random, thread_rng, Rng};
+use rand::{thread_rng, Rng};
 
 use ecc_generic::types::{ECpoint, GroupOrder, U256, EC, Zp};
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -35,7 +35,7 @@ impl EC for Curve {
 }
 fn main() {
     // let mut p;
-    let mut x_p = Zp::zero();
+    let mut x_p: Zp<P>;
     let mut y_p = Zp::zero();
     // let mut found = false;
     // for x in 0..u16::MAX {
