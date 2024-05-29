@@ -4,19 +4,16 @@ pub mod utils;
 
 #[cfg(test)]
 mod tests {
-    use crate::types::*;
+    use crate::{types::*, utils::is_prime};
     
     #[derive(Debug, Default, Clone, Copy, PartialEq)]
     struct EllipticCurve;
     impl EC for EllipticCurve {
+        const NAME: &'static str = "Curve127p";        
         const A: U256 = U256([0;4]);
         const B: U256 = U256([7,0,0,0]);
         const N: U256 = U256([127, 0, 0, 0]);
         const P: U256 = U256([127, 0, 0, 0]);
-        fn order_of_cyclic_subgroup<E: EC>(&self) -> U256 {
-            todo!()
-        }
-        
     }
     type Zp = crate::types::Zp<EllipticCurve>;   
     type ECpoint = crate::types::ECpoint<EllipticCurve>;
@@ -25,19 +22,18 @@ mod tests {
     #[derive(Debug, Default, Clone, Copy, PartialEq)]
     struct HugeDummyCurve;
     impl EC for HugeDummyCurve {
+        const NAME: &'static str = "DummyInvalidCurve";    
         const A: U256 = U256([0;4]);
         const B: U256 = U256([0;4]);
         const N: U256 = U256([0;4]);
-        const P: U256 = U256::MAX;    
-        fn order_of_cyclic_subgroup<E: EC>(&self) -> U256 {
-            todo!()
-        }
+        const P: U256 = U256::MAX;
     }
     type ZpH = crate::types::Zp<HugeDummyCurve>;
 
     #[derive(Debug, Default, Clone, Copy, PartialEq)]
     struct Secp256k1;
     impl EC for Secp256k1 {
+        const NAME: &'static str = "Secp256k1";     
         const A: U256 = U256([0;4]);
         const B: U256 = U256([7, 0, 0, 0]);
         const N: U256 = U256([
@@ -52,9 +48,6 @@ mod tests {
             18446744073709551615,
             18446744073709551615,
         ]);
-        fn order_of_cyclic_subgroup<E: EC>(&self) -> U256 {
-            todo!()
-        }     
     }
     type ZpSecp256k1 = crate::types::Zp<Secp256k1>;
     type ECpointSecp256k1 = crate::types::ECpoint<Secp256k1>;
@@ -226,7 +219,7 @@ mod tests {
         assert_eq!(a + a + a + a, a * Scalar::new(4));
         assert_eq!(-a, a * Scalar::new(-1));
         let x = ZpSecp256k1::new(U256::from_str_radix("0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", 16).unwrap());
-        let y = (x.pow(3) + ZpSecp256k1::new(Secp256k1::A) * x + ZpSecp256k1::new(Secp256k1::B)).sqrt().unwrap();
+        let y = (x.pow(3) + ZpSecp256k1::new(Secp256k1::A) * x + ZpSecp256k1::new(Secp256k1::B)).sqrt().unwrap().0;
         let g = ECpointSecp256k1::new(x, y).unwrap();
         let b = ScalarSecp256k1::new(- 3);
         assert_eq!(g * ScalarSecp256k1::one(), 
@@ -306,7 +299,15 @@ mod tests {
              .map(|n| Zp::new(*n))
              .collect::<Vec<_>>();
         assert!(a.iter()
-            .all(|z| z.sqrt().unwrap().pow(2) == *z)
+            .all(|z| z.sqrt().unwrap().0.pow(2) == *z)
         );
+        assert!(a.iter()
+            .all(|z| z.sqrt().unwrap().1.pow(2) == *z)
+        );
+    }
+    #[test]
+    fn test_is_prime() {
+        let a = is_prime(127);
+        assert!(a);
     }
 }

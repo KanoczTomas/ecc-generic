@@ -1,11 +1,14 @@
-use std::io::{stdout, Write};
-use rand::{thread_rng, Rng};
+use std::vec;
 
-use ecc_generic::types::{ECpoint, U256, EC, Zp};
+use ecc_generic::types::{ECpoint, Scalar, Zp, EC, U256};
+use rand::{thread_rng, Rng};
+use ring::digest::{self, digest};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
-struct Curve;
-impl EC for Curve {
+struct Secp256k1;
+impl EC for Secp256k1 {
+    const NAME: &'static str = "Secp256k1";
+    //secp256k1
     const A: U256 = U256([0;4]);
     const B: U256 = U256([7, 0, 0, 0]);
     const N: U256 = U256([
@@ -20,68 +23,92 @@ impl EC for Curve {
         18446744073709551615,
         18446744073709551615,
     ]);
-
-    fn order_of_cyclic_subgroup<E: EC>(&self) -> U256 {
-        todo!()
-    }
-    
-    
-    // const N: U256 = U256([0;4]);
 }
-fn main() {
-    // let mut p;
-    let mut x_p: Zp<Curve>;
-    let mut y_p = Zp::zero();
-    // let mut found = false;
-    // for x in 0..u16::MAX {
-    //     for y in 0..u16::MAX {
-    //         println!("\rtrying x: {}, y: {}", x, y);
-    //         let _ = stdout().flush();
-    //         if ECpoint::<P, Curve>::new(x, y).is_some() {
-    //             found = true;
-    //             x_p = x;
-    //             y_p = y;
-    //         }
-    //         if found {
-    //             break
-    //         }
-    //     }
-    //     if found {
-    //         break
-    //     }
-    // }
-    loop {
-        // let _x_p = thread_rng().gen::<u32>();
-        let mut _x_p = [0u64;4];
-        thread_rng().fill(&mut _x_p);
-        x_p = Zp::new(U256(_x_p));
-        let _y_p = (x_p.pow(U256::from(3)) + Zp::new(Curve::A) * x_p + Zp::new(Curve::B)).sqrt();
-        dbg!(x_p, y_p);
-        if _y_p.is_none(){
-            continue;
-        }
-        y_p = _y_p.unwrap();
-        let p = ECpoint::<Curve>::new(x_p, y_p);
-        println!("\rx: {}, y: {}", x_p.unwrap(), y_p.unwrap());
-        let _ = stdout().flush();
-        if p.is_some() {
-            break;
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+struct Curve127p;
+impl EC for Curve127p {
+    const NAME: &'static str = "Curve127p";
+    const A: U256 = U256([0;4]);
+    const B: U256 = U256([7, 0, 0, 0]);
+    const N: U256 = U256([127, 0, 0, 0]);
+    const P: U256 = U256([127, 0, 0, 0]);
+    
+}
+impl Curve127p {
+    pub fn generator() -> ECpoint<Self> {
+        let g = ECpoint::<Curve127p>::new(79, 64).unwrap();
+        g
+    }
+    pub fn generate_point() -> ECpoint<Self> {
+        loop {
+            let x = thread_rng().gen_range(0..127);
+            let x = Zp::<Self>::new(x);
+            dbg!(x);
+            let y = x.pow(3) + Zp::new(Curve127p::A)*x + Zp::new(Curve127p::B);
+            let y = y.sqrt();
+            dbg!(y);    
+            if y.is_some() {
+                println!("found point:");
+                return ECpoint::<Self>::new(x, y.unwrap().0).unwrap();
+            } else {
+                println!("no square root for y, retrying...");
+            }
         }
     }
+    pub fn other_generator() -> ECpoint<Self> {
+        let p = Curve127p::generate_point();
+        p
+    }
+}
 
-    // let xp = "0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
-    // let yp = "0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8";
-    // let xp = U256::from_str_radix(&xp, 16).unwrap();
-    // let yp = U256::from_str_radix(&yp, 16).unwrap();
-    // dbg!(ECpoint::<P, Curve>::new(xp, yp));
+fn hash256(data: &[u8]) -> U256 {
+    let d = digest(&digest::SHA512_256, data);
+    U256::from(d.as_ref())
+}
 
-    // let p = U256::from_str_radix("0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f", 16).unwrap();
-    // dbg!(p.0);
-    // dbg!(p);
-    // let n = U256::from_str_radix("0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16).unwrap();
-    // dbg!(n.0);
-    // dbg!(n);
-    // let g_x = U256::from_str_radix("0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", 16).unwrap();
-    // dbg!(g_x.0);
-    // dbg!(g_x);
+fn main() {
+    type Zp = ecc_generic::types::Zp<Curve127p>;
+    type Scalar = ecc_generic::types::Scalar<Curve127p>;
+    // let scalar = |v| Scalar::new(v);
+    let g = Curve127p::generator();
+    let a = g * 5;
+    let b = a / 5;
+    dbg!(g, a, b);
+    let inputs = [1, 2, 3, 5].map(|v| -v);//.map(scalar);
+    let outputs = [8, 2];//.map(scalar);
+    let fee = 1;
+    dbg!(inputs.into_iter().sum::<i32>(), outputs.into_iter().sum::<i32>(), fee);
+    let ins = inputs.iter().copied().map(|v| g * v).collect::<Vec<_>>();
+    let mut outs = outputs.iter().copied().map(|v| g * v).collect::<Vec<_>>();
+    outs.push(g * fee);
+    dbg!(&ins, &outs);
+    // dbg!([ins, outs].concat().into_iter().sum::<ECpoint<Curve127p>>());
+    dbg!([&inputs[..], &outputs[..],&[fee]].concat().into_iter().sum::<i32>());
+    let h = Curve127p::other_generator();
+    dbg!(h);
+    let random = |_| thread_rng().gen_range(0..127);
+    let blinding_inputs = [0; 4].map(random).map(|v| -v);//.map(scalar);
+    let blinding_outputs = [0; 2].map(random);//.map(scalar);
+    let excess = [&blinding_inputs[..], &blinding_outputs[..]].concat().into_iter().sum::<i32>();
+    dbg!(excess);
+    dbg!(blinding_inputs, blinding_outputs);
+    let bins = blinding_inputs.map(|v| h * v);
+    dbg!(bins);
+    let bouts = blinding_outputs.map(|v| h * v);
+    dbg!(bouts);
+    let public_excess = [&ins[..], &outs[..], &bins[..], &bouts[..]].concat().into_iter().sum::<ECpoint<Curve127p>>();
+    dbg!(public_excess);
+    dbg!(h * excess);
+    let h = [
+        public_excess.x().unwrap().0,
+        public_excess.y().unwrap().0
+        ].concat()
+         .into_iter()
+         .map(|v| v.to_ne_bytes())
+         .flatten()
+         .collect::<Vec<_>>();
+    let h = hash256(&h[..]);
+    println!("0x{:X}", h);
+    dbg!(Scalar::new(h));
+    dbg!(-223%127);
 }
