@@ -1,15 +1,24 @@
-use std::{fmt::Debug, marker::PhantomData};
+use std::marker::PhantomData;
 
 use crate::types::{U256, U512, EC};
 
-// pub trait GroupOrder: PartialEq + Default + Copy + Debug{
-//     const P: U256;    
-// }
-
-
-
-#[derive(Clone, Copy, PartialEq, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Default)]
 pub struct Zp<E: EC>(U256, PhantomData<E>);
+
+impl<E: EC> std::fmt::Display for Zp<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}",self.0)?;
+        Ok(())
+    }
+}
+
+impl<E: EC> std::fmt::Debug for Zp<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // f.debug_tuple("Zp").field(&self.0).field(&self.1).finish()
+        write!(f, "{} [mod {}]", self.0, E::P)?;
+        Ok(())
+    }
+}
 
 impl<E: EC> Zp<E> {
     pub const ZERO: Zp<E> = Zp(U256([0;4]), PhantomData);
@@ -69,13 +78,13 @@ impl<E: EC> Zp<E> {
         Zp::new(res)
     }
     ///Decides whether a number is a quadratic residue. If it has a square root
-    ///it is a quadratic residue mod p.We use Euler's criterion to do so.
+    ///it is a quadratic residue mod p. We use Euler's criterion to do so.
     pub fn is_quadratic_residue(self) -> bool {
         //mod 2, trivial results
         if E::P == 2.into() {
             return true
         }
-        //if se;f % p == 0
+        //if self % p == 0
         //As Zp is already mod p, we just have to check if it is 0
         match self.is_zero() {
             true => true,
@@ -84,13 +93,13 @@ impl<E: EC> Zp<E> {
 
     }
     ///Find number n such that n * n = self. In other words finds the square root 
-    ///modulo prime of self
-    pub fn sqrt(self) -> Option<Self> {
+    ///modulo prime of self. This algorithm returns (n, -n) mod p
+    pub fn sqrt(self) -> Option<(Self, Self)> {
         //rewrite of
         //https://github.com/jacksoninfosec/tonelli-shanks/blob/main/tonelli-shanks.py
         //if n % p == 0, 0 is a trivial solution
         if self.is_zero() {
-            return Some(self)
+            return Some((self, self))
         }
         if self.is_quadratic_residue() == false {
             return None
@@ -98,7 +107,8 @@ impl<E: EC> Zp<E> {
         //If p=3(mod 4) and we know n is a quadratic residue then 
         //we can solve x^2=n(mod p) directly
         if E::P % U256::from(4) == 3.into() {
-            return Some(self.pow((E::P+1)/4))
+            let res = self.pow((E::P+1)/4);
+            return Some((res, -res));
         }
         //So now p=1(mod 4), (although this is not needed in the algorithm).
         //Write p - 1 = (2^S)(Q) where Q is odd
@@ -141,7 +151,7 @@ impl<E: EC> Zp<E> {
             R = R * b;
             
         }
-        return Some(R)
+        return Some((R, -R))
     }
     
 
@@ -221,8 +231,8 @@ macro_rules! impl_from_for_zp_signed {
                 fn from(value: $ti) -> Self {
                     match value >= 0 {
                         //$tu is the unsigned counterpart as U256 from is implemented on for them
-                        true => Zp(U256::from(value as $tu), PhantomData),
-                        false => -Zp(U256::from(-value), PhantomData)
+                        true => Zp(U256::from(value as $tu) % E::P, PhantomData),
+                        false => -Zp(U256::from(-value) % E::P, PhantomData)
                     }
                     
                 }
@@ -239,7 +249,7 @@ macro_rules! impl_from_for_zp_unsigned {
         $(
             impl<E: EC> std::convert::From<$t> for Zp<E>{
                 fn from(value: $t) -> Self {
-                    Zp(U256::from(value), PhantomData)
+                    Zp(U256::from(value) % E::P, PhantomData)
                 }
             }            
         )*

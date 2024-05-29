@@ -1,7 +1,7 @@
 use std::{fmt::Debug, marker::PhantomData};
+use rand::Rng;
 
 use crate::types::{U256, U512, ECpoint, EC};
-
 
 #[derive(Clone, Copy, PartialEq, Debug, Default)]
 pub struct Scalar<E: EC>(U256, PhantomData<E>);
@@ -44,6 +44,16 @@ impl<E: EC> Scalar<E> {
 		}
 
 		Scalar::new(xy.0)
+    }
+    ///Generates a random scalar that fits the range <1, N)
+    pub fn generate_secret() -> Scalar<E> {
+        let mut secret = U256::zero();
+        loop {
+            rand::thread_rng().fill(&mut secret.0);
+            if secret > 0.into() && secret < E::N  {
+                return Self::new(secret)
+            }
+        }
     }
 }
 
@@ -146,8 +156,8 @@ macro_rules! impl_from_for_scalar_signed {
                 fn from(value: $ti) -> Self {
                     match value >= 0 {
                         //$tu is the unsigned counterpart as U256 from is implemented on for them
-                        true => Scalar(U256::from(value as $tu), PhantomData),
-                        false => -Scalar(U256::from(-value), PhantomData)
+                        true => Scalar(U256::from(value as $tu) % E::N, PhantomData),
+                        false => -Scalar(U256::from(-value) % E::N, PhantomData)
                     }
                     
                 }
@@ -164,7 +174,7 @@ macro_rules! impl_from_for_scalar_unsigned {
         $(
             impl<E: EC> std::convert::From<$t> for Scalar<E>{
                 fn from(value: $t) -> Self {
-                    Scalar(U256::from(value), PhantomData)
+                    Scalar(U256::from(value) % E::N, PhantomData)
                 }
             }            
         )*
@@ -173,3 +183,11 @@ macro_rules! impl_from_for_scalar_unsigned {
 }
 
 impl_from_for_scalar_unsigned!(u8,u16,u32,u64,u128,U256);
+impl<E: EC> std::iter::Sum for Scalar<E> {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Scalar::zero(), |mut acc, elem| {
+            acc += elem;
+            acc
+        })
+    }
+}
