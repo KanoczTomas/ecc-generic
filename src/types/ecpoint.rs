@@ -1,19 +1,35 @@
-use std::marker::PhantomData;
-
 use crate::types::{Zp, EC, Scalar, U256};
-#[derive(Default,Debug, PartialEq, Clone, Copy)]
+#[derive(Default, PartialEq, Clone, Copy)]
 ///Represents a Point on curve that can be expressed with x,y coordinates
 pub struct Point<E: EC> {
-    pub x: Zp<E>,
-    pub y: Zp<E>,
+    x: Zp<E>,
+    y: Zp<E>,
 }
 
-#[derive(Default, Debug, PartialEq, Clone, Copy)]
-///Represents the entire set of points, including inifnity
+impl<E: EC> std::fmt::Debug for Point<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // f.debug_struct("Point").field("x", &self.x).field("y", &self.y).finish()
+        write!(f, "Point on curve {} => ({}, {}) [mod {}]", E::NAME, self.x, self.y, E::P)?;
+        Ok(())
+    }
+}
+
+#[derive(Default, PartialEq, Clone, Copy)]
+///Represents the entire set of points lying on EC, including inifnity
 pub enum ECpoint<E: EC> {
     #[default]
     Infinity,
     Point(Point<E>)
+}
+
+impl<E: EC> std::fmt::Debug for ECpoint<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Infinity => write!(f, "Point at Infinity"),
+            // Self::Point(arg0) => f.debug_tuple("Point").field(arg0).finish(),
+            Self::Point(p) => write!(f, "{:?}", p)
+        }
+    }
 }
 
 impl<E: EC> ECpoint<E> {
@@ -178,5 +194,14 @@ impl_div_for_ecpoint!(i8,u8,i16,u16,i32,u32,i64,u64,i128,u128,U256);
 impl<E: EC> std::ops::DivAssign<Scalar<E>> for ECpoint<E> {
     fn div_assign(&mut self, rhs: Scalar<E>) {
         *self = *self / rhs
+    }
+}
+
+impl<E: EC> std::iter::Sum for ECpoint<E> {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(ECpoint::Infinity, |mut acc, point|{
+            acc += point;
+            acc
+        })
     }
 }
