@@ -1,8 +1,8 @@
-use std::{fmt::Debug, marker::PhantomData};
+use std::{fmt::{Debug, Display}, marker::PhantomData};
 use crate::{types::{ECpoint, U256}, utils::find_factors};
 
 
-pub trait EC: PartialEq + Default + Copy{
+pub trait EC: PartialEq + Default + Copy {
     const NAME: &'static str;
     ///a constant in the elliptic curve equation
     const A: U256;

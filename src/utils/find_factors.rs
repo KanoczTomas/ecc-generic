@@ -13,7 +13,8 @@ pub fn find_factors<T: Into<U256>>(n: T) -> Vec<U256> {
             factors.push(candidate);
         }
     }
-    let factors: HashSet<_> = factors.into_iter().collect(); //make vec unique
-    let factors: Vec<_> = factors.into_iter().collect(); //transform to vec again
+    // let factors: HashSet<_> = factors.into_iter().collect(); //make vec unique
+    // let mut factors: Vec<_> = factors.into_iter().collect(); //transform to vec again
+    // factors.sort();
     factors
 }

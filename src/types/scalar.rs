@@ -1,10 +1,25 @@
-use std::{fmt::Debug, marker::PhantomData};
+use std::marker::PhantomData;
 use rand::Rng;
 
 use crate::types::{U256, U512, ECpoint, EC};
 
-#[derive(Clone, Copy, PartialEq, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Default)]
 pub struct Scalar<E: EC>(U256, PhantomData<E>);
+
+impl<E: EC> std::fmt::Display for Scalar<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}",self.0)?;
+        Ok(())
+    }
+}
+
+impl<E: EC> std::fmt::Debug for Scalar<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // f.debug_tuple("Scalar").field(&self.0).field(&self.1).finish()
+        write!(f, "{} [mod {}]", self.0, E::N)?;
+        Ok(())
+    }
+}
 
 impl<E: EC> Scalar<E> {
     pub fn new<T: Into<Scalar<E>>>(val: T) -> Self {
@@ -182,7 +197,7 @@ macro_rules! impl_from_for_scalar_unsigned {
     };
 }
 
-impl_from_for_scalar_unsigned!(u8,u16,u32,u64,u128,U256);
+impl_from_for_scalar_unsigned!(u8,u16,u32,u64,u128, U256);
 impl<E: EC> std::iter::Sum for Scalar<E> {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Scalar::zero(), |mut acc, elem| {

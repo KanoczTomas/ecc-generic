@@ -4,7 +4,7 @@ pub mod utils;
 
 #[cfg(test)]
 mod tests {
-    use crate::{types::*, utils::is_prime};
+    use crate::{types::*, utils::{find_divisors, is_prime}};
     
     #[derive(Debug, Default, Clone, Copy, PartialEq)]
     struct EllipticCurve;
@@ -309,5 +309,11 @@ mod tests {
     fn test_is_prime() {
         let a = is_prime(127);
         assert!(a);
+    }
+    #[test]
+    fn test_find_divisors() {
+        let answer = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048].map(U256::from);
+        let res = find_divisors(2048);
+        assert_eq!(res, answer);
     }
 }

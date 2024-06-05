@@ -41,6 +41,7 @@ impl<E: EC> Zp<E> {
     pub fn unwrap(&self) -> U256 {
         self.0
     }
+    ///Find the only number m, such that n * m = 1 mod P
     ///We assume P is a prime!
     fn multiplicative_inverse(n: Zp<E>) -> Zp<E> {
         // from
