@@ -9,7 +9,7 @@ pub struct Point<E: EC> {
 impl<E: EC> std::fmt::Debug for Point<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // f.debug_struct("Point").field("x", &self.x).field("y", &self.y).finish()
-        write!(f, "Point on curve {} => ({}, {}) [mod {}]", E::NAME, self.x, self.y, E::P)?;
+        write!(f, "({}, {}) [mod {}, curve {}]", self.x, self.y, E::P, E::NAME)?;
         Ok(())
     }
 }
@@ -66,6 +66,21 @@ impl<E: EC> ECpoint<E> {
         match self {
             ECpoint::Infinity => panic!("Infinity has no y coordinate"),
             ECpoint::Point(p) => p.y
+        }
+    }
+    ///Creates a u8 representation of the point. Big endian x, then y coordinates
+    ///Warning, returns empty vec for infinity!
+    pub fn to_u8_vec(&self) -> Vec<u8> {
+        match self {
+            Self::Infinity => vec![],
+            Self::Point(_) => [
+                self.x().unwrap().0,
+                self.y().unwrap().0
+            ].concat()
+             .into_iter()
+             .map(|v| v.to_be_bytes())
+             .flatten()
+             .collect::<Vec<u8>>()
         }
     }
 }
